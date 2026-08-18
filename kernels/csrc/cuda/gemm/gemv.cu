@@ -1337,6 +1337,14 @@ template __global__ void si_mmvq_q4k_rows_exact_kernel<float, 8, 6, SI_Q4K_OROWS
     const si_block_q8_1*, const unsigned char*, float*, int, int);
 template __global__ void si_mmvq_q4k_rows_exact_kernel<float, 16, 6, SI_Q4K_OROWS>(
     const si_block_q8_1*, const unsigned char*, float*, int, int);
+template __global__ void si_mmvq_q4k_rows_exact_kernel<__nv_bfloat16, 26, 8, SI_Q4K_OROWS>(
+    const si_block_q8_1*, const unsigned char*, __nv_bfloat16*, int, int);
+template __global__ void si_mmvq_q4k_rows_exact_kernel<__nv_bfloat16, 26, 6, SI_Q4K_OROWS>(
+    const si_block_q8_1*, const unsigned char*, __nv_bfloat16*, int, int);
+template __global__ void si_mmvq_q4k_rows_exact_kernel<float, 26, 8, SI_Q4K_OROWS>(
+    const si_block_q8_1*, const unsigned char*, float*, int, int);
+template __global__ void si_mmvq_q4k_rows_exact_kernel<float, 26, 6, SI_Q4K_OROWS>(
+    const si_block_q8_1*, const unsigned char*, float*, int, int);
 #endif
 // One block per row index: warps 0-3 -> qkv[row], warps 4-7 -> z[row], keeping vy hot
 // in L2 across both when row < min(n_qkv, n_z). Grid = max(n_qkv, n_z).
@@ -2471,7 +2479,7 @@ bool launch_mmvq_q4k_rows(const void* q81, const void* W, void* y,
     // the token loop, and DFlash speculation could never engage on Qwen3.8 at all. 20 (5120) and
     // 24 (6144) are added for exactly that.
     if (M < 1 || M > 8 || N < 1) return false;
-    if (K != 2048 && K != 4096 && K != 5120 && K != 6144) return false;
+    if (K != 2048 && K != 4096 && K != 5120 && K != 6144 && K != 6656) return false;
     // Dispatch the tightest instantiated row width: MMAX bounds tmp[]/partial[] and the
     // number of predicated row bodies, so a 6-row block should not pay an 8-row footprint.
     const auto* q = reinterpret_cast<const si_block_q8_1*>(q81);
@@ -2486,7 +2494,8 @@ bool launch_mmvq_q4k_rows(const void* q81, const void* W, void* y,
     if      (K == 2048) SI_Q4K_ROWS_DISPATCH(8);
     else if (K == 4096) SI_Q4K_ROWS_DISPATCH(16);
     else if (K == 5120) SI_Q4K_ROWS_DISPATCH(20);
-    else                SI_Q4K_ROWS_DISPATCH(24);
+    else if (K == 6144) SI_Q4K_ROWS_DISPATCH(24);
+    else                SI_Q4K_ROWS_DISPATCH(26);
     #undef SI_Q4K_ROWS_DISPATCH
     return true;
 }
@@ -2541,7 +2550,7 @@ bool launch_mmvq_rows_f32(int qtype, const void* q81, const void* W, float* y,
     // Same instantiated-width limit as launch_mmvq_q4k_rows above, and the same consequence:
     // this is the LM-head path, so K=5120 (Qwen3.8's hidden) refused here made the verify decline
     // AFTER every layer had already succeeded -- "unsupported LM head type=12 H=5120".
-    if (qtype == 12 && (K == 2048 || K == 4096 || K == 5120 || K == 6144)) {
+    if (qtype == 12 && (K == 2048 || K == 4096 || K == 5120 || K == 6144 || K == 6656)) {
         const int grid = (N + SI_Q4K_OROWS - 1) / SI_Q4K_OROWS;
         #define SI_Q4K_ROWS_F32_DISPATCH(KB) \
             do { \
@@ -2551,7 +2560,8 @@ bool launch_mmvq_rows_f32(int qtype, const void* q81, const void* W, float* y,
         if      (K == 2048) SI_Q4K_ROWS_F32_DISPATCH(8);
         else if (K == 4096) SI_Q4K_ROWS_F32_DISPATCH(16);
         else if (K == 5120) SI_Q4K_ROWS_F32_DISPATCH(20);
-        else                SI_Q4K_ROWS_F32_DISPATCH(24);
+        else if (K == 6144) SI_Q4K_ROWS_F32_DISPATCH(24);
+        else                SI_Q4K_ROWS_F32_DISPATCH(26);
         #undef SI_Q4K_ROWS_F32_DISPATCH
         return true;
     }

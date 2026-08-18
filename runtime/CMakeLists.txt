@@ -97,6 +97,11 @@ if(BUILD_EXAMPLES)
     add_executable(nvfp4_gemm_check examples/nvfp4_gemm_check.cpp)
     target_include_directories(nvfp4_gemm_check PRIVATE include)
     target_link_libraries(nvfp4_gemm_check PRIVATE sparkinfer_runtime CUDA::cudart)
+    # Model-free check that the batched-row Q4_K path matches serial decode calls at K=6656
+    # (Muse Glimmer's hidden size), which the batched-row launcher did not previously support.
+    add_executable(mmvq_q4k_rows_6656_check examples/mmvq_q4k_rows_6656_check.cpp)
+    target_include_directories(mmvq_q4k_rows_6656_check PRIVATE include)
+    target_link_libraries(mmvq_q4k_rows_6656_check PRIVATE sparkinfer_runtime CUDA::cudart)
 
     add_executable(qwen3_gguf_prefill_check examples/qwen3_gguf_prefill_check.cpp)
     target_include_directories(qwen3_gguf_prefill_check PRIVATE include)
