@@ -565,7 +565,7 @@ void DFlashDraftModel::set_shared_weights(const void* embed, const void* lm_head
     // only move the accept length, never correctness. int4 halves those bytes again (~254 MB vs
     // ~508 MB at V=248k), and the kernel is at HBM peak, so its runtime is its weight bytes.
     // SPARKINFER_DFLASH_HEAD_I4=0 keeps the int8 head.
-    if (!p_->lm_head_i8 && lm_head_type == 12 && vocab > 0 && hidden == 2048) {
+    if (!p_->lm_head_i8 && lm_head_type == 12 && vocab > 0 && (hidden == 2048 || hidden == 5120)) {
         p_->lm_head_i8 = p_->alloc<signed char>((size_t)vocab * hidden);
         p_->lm_head_i8_scale = p_->alloc<float>(vocab);
         if (!kernels::launch_gguf_dequant_rows_i8(

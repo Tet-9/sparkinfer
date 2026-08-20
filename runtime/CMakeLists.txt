@@ -102,6 +102,11 @@ if(BUILD_EXAMPLES)
     add_executable(mmvq_q4k_rows_6656_check examples/mmvq_q4k_rows_6656_check.cpp)
     target_include_directories(mmvq_q4k_rows_6656_check PRIVATE include)
     target_link_libraries(mmvq_q4k_rows_6656_check PRIVATE sparkinfer_runtime CUDA::cudart)
+    # Correctness + timing check for the int8/int4 quantized DSpark LM-head path at K=5120
+    # (Qwen3.8-27B), which was previously gated to K=2048 (Qwen3.6) only.
+    add_executable(dspark_lmhead_i4i8_5120_check examples/dspark_lmhead_i4i8_5120_check.cpp)
+    target_include_directories(dspark_lmhead_i4i8_5120_check PRIVATE include)
+    target_link_libraries(dspark_lmhead_i4i8_5120_check PRIVATE sparkinfer_runtime CUDA::cudart)
 
     add_executable(qwen3_gguf_prefill_check examples/qwen3_gguf_prefill_check.cpp)
     target_include_directories(qwen3_gguf_prefill_check PRIVATE include)
