@@ -97,6 +97,12 @@ if(BUILD_EXAMPLES)
     add_executable(nvfp4_gemm_check examples/nvfp4_gemm_check.cpp)
     target_include_directories(nvfp4_gemm_check PRIVATE include)
     target_link_libraries(nvfp4_gemm_check PRIVATE sparkinfer_runtime CUDA::cudart)
+    # Confirms qknorm_rope_kv_partial_int8_gated runs cleanly at Qwen3.8-27B's real Gated
+    # Attention shape (24 Q heads, 4 KV heads, head_dim=256, rotary_dim=64), which
+    # qkgate_fuse in qwen35.cpp previously could not reach (H==2048 only).
+    add_executable(qkgate_h5120_check examples/qkgate_h5120_check.cpp)
+    target_include_directories(qkgate_h5120_check PRIVATE include)
+    target_link_libraries(qkgate_h5120_check PRIVATE sparkinfer_runtime CUDA::cudart)
 
     add_executable(qwen3_gguf_prefill_check examples/qwen3_gguf_prefill_check.cpp)
     target_include_directories(qwen3_gguf_prefill_check PRIVATE include)

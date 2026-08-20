@@ -1361,7 +1361,7 @@ int Qwen35Model::forward_token(int token_id, int position, bool sample, float te
             void* kscale = kv8 ? (char*)s.kv->k_scale_pool() + s.kv->scale_layer_base_elems(L) * 2 : nullptr;
             void* vscale = kv8 ? (char*)s.kv->v_scale_pool() + s.kv->scale_layer_base_elems(L) * 2 : nullptr;
             const bool partial_rope = (c.rope_dim > 0 && c.rope_dim < c.head_dim);
-            const bool qkgate_fuse = w.q_has_gate && partial_rope && kv8 && s.use_qkfuse && H == 2048;
+            const bool qkgate_fuse = w.q_has_gate && partial_rope && kv8 && s.use_qkfuse && (H == 2048 || H == 5120);
             // w.wgate != nullptr means Q and the gate were projected straight into s.q / s.qgate
             // above, so there is no interleaved s.qraw to split.
             if (w.q_has_gate && !qkgate_fuse && !w.wgate)
@@ -1380,7 +1380,7 @@ int Qwen35Model::forward_token(int token_id, int position, bool sample, float te
             } else {
                 // Qwen3.6 (gated / partial-rotary): fuse QK-norm + partial-RoPE + KV when enabled.
                 if (partial_rope && kv8) {
-                    if (s.use_qkfuse && H == 2048) {
+                    if (s.use_qkfuse && (H == 2048 || H == 5120)) {
                         if (qkgate_fuse) {
                             kernels::launch_qknorm_rope_kv_partial_int8_gated(s.qraw, s.q, s.qgate, s.k, s.v,
                                 w.q_norm, w.k_norm, kpool, vpool, kscale, vscale, btable, s.d_pos, 1,
