@@ -565,6 +565,13 @@ void DFlashDraftModel::set_shared_weights(const void* embed, const void* lm_head
     // only move the accept length, never correctness. int4 halves those bytes again (~254 MB vs
     // ~508 MB at V=248k), and the kernel is at HBM peak, so its runtime is its weight bytes.
     // SPARKINFER_DFLASH_HEAD_I4=0 keeps the int8 head.
+    //
+    // H=5120 (Qwen3.8-27B/DSpark) measured on RTX 5090 against the real published checkpoints
+    // (gittensor-model-hub/Qwen3.8-27B-NVFP4-RTX5090 + -DSpark-NVFP4), dspark_tau_check, 4096
+    // tokens: kernel itself is 1.67-2.06x faster in isolation than the Q4_K fallback it replaces,
+    // but the end-to-end decode@4k AR/DSpark tok/s and tau were statistically unchanged across 4
+    // runs (2 before, 2 after) -- this read is evidently not the bottleneck at this depth/context,
+    // even though the gap being closed here is real. See PR history for the full run data.
     if (!p_->lm_head_i8 && lm_head_type == 12 && vocab > 0 && (hidden == 2048 || hidden == 5120)) {
         p_->lm_head_i8 = p_->alloc<signed char>((size_t)vocab * hidden);
         p_->lm_head_i8_scale = p_->alloc<float>(vocab);
