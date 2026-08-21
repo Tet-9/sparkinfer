@@ -1361,6 +1361,11 @@ int Qwen35Model::forward_token(int token_id, int position, bool sample, float te
             void* kscale = kv8 ? (char*)s.kv->k_scale_pool() + s.kv->scale_layer_base_elems(L) * 2 : nullptr;
             void* vscale = kv8 ? (char*)s.kv->v_scale_pool() + s.kv->scale_layer_base_elems(L) * 2 : nullptr;
             const bool partial_rope = (c.rope_dim > 0 && c.rope_dim < c.head_dim);
+            // H=5120 (Qwen3.8-27B) measured on RTX 5090 against the real published checkpoints
+            // (gittensor-model-hub/Qwen3.8-27B-NVFP4-RTX5090 + -DSpark-NVFP4), dspark_tau_check,
+            // 4096 tokens: kernel itself is 1.96-2.02x faster in isolation than the unfused
+            // rmsnorm_qk+rope path, but end-to-end decode@4k AR/DSpark tok/s were statistically
+            // unchanged across 4 runs (2 before, 2 after). See PR history for the full run data.
             const bool qkgate_fuse = w.q_has_gate && partial_rope && kv8 && s.use_qkfuse && (H == 2048 || H == 5120);
             // w.wgate != nullptr means Q and the gate were projected straight into s.q / s.qgate
             // above, so there is no interleaved s.qraw to split.
